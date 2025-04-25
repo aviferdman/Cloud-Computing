@@ -104,18 +104,84 @@ resource "local_file" "private_key" {
   filename = "${path.module}/parking-lot-key.pem"
 }
 
+# DynamoDB Table
+resource "aws_dynamodb_table" "parking_entries" {
+  name           = "parking-entries"
+  billing_mode   = "PAY_PER_REQUEST"
+  hash_key       = "ticket_id"
+
+  attribute {
+    name = "ticket_id"
+    type = "S"
+  }
+
+  tags = {
+    Name = "parking-entries"
+  }
+}
+
+# IAM Role for EC2
+resource "aws_iam_role" "parking_server_role" {
+  name = "parking_server_role"
+
+  assume_role_policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Action = "sts:AssumeRole"
+        Effect = "Allow"
+        Principal = {
+          Service = "ec2.amazonaws.com"
+        }
+      }
+    ]
+  })
+
+  tags = {
+    Name = "parking-server-role"
+  }
+}
+
+# IAM Policy for DynamoDB access
+resource "aws_iam_role_policy" "dynamodb_access" {
+  name = "dynamodb_access"
+  role = aws_iam_role.parking_server_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "dynamodb:PutItem",
+          "dynamodb:GetItem",
+          "dynamodb:DeleteItem"
+        ]
+        Resource = [aws_dynamodb_table.parking_entries.arn]
+      }
+    ]
+  })
+}
+
+# Instance Profile
+resource "aws_iam_instance_profile" "parking_server_profile" {
+  name = "parking_server_profile"
+  role = aws_iam_role.parking_server_role.name
+}
+
 resource "aws_instance" "parking_server" {
   ami           = "ami-0c2b8ca1dad447f8a"
   instance_type = "t2.micro"
   key_name      = aws_key_pair.generated_key.key_name
   subnet_id     = aws_subnet.parking_subnet.id
   vpc_security_group_ids = [aws_security_group.parking_sg.id]
+  iam_instance_profile   = aws_iam_instance_profile.parking_server_profile.name
 
   user_data = <<-EOF
               #!/bin/bash
               yum update -y
               yum install python3 git -y
-              pip3 install flask
+              pip3 install flask boto3
               git clone https://github.com/aviferdman/Cloud-Computing.git
               cd parking-lot-management/app
               python3 parking_system.py &
