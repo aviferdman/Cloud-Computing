@@ -1,6 +1,3 @@
-provider "aws" {
-  region = "us-east-1"
-}
 
 # VPC
 resource "aws_vpc" "parking_vpc" {
@@ -163,6 +160,28 @@ resource "aws_iam_role_policy" "dynamodb_access" {
   })
 }
 
+# IAM Policy for ECR access
+resource "aws_iam_role_policy" "ecr_access" {
+  name = "ecr_access"
+  role = aws_iam_role.parking_server_role.id
+
+  policy = jsonencode({
+    Version = "2012-10-17"
+    Statement = [
+      {
+        Effect = "Allow"
+        Action = [
+          "ecr:GetAuthorizationToken",
+          "ecr:BatchCheckLayerAvailability",
+          "ecr:GetDownloadUrlForLayer",
+          "ecr:BatchGetImage"
+        ]
+        Resource = "*"
+      }
+    ]
+  })
+}
+
 # Instance Profile
 resource "aws_iam_instance_profile" "parking_server_profile" {
   name = "parking_server_profile"
@@ -180,11 +199,14 @@ resource "aws_instance" "parking_server" {
   user_data = <<-EOF
               #!/bin/bash
               yum update -y
-              yum install python3 git -y
-              pip3 install flask boto3
-              git clone https://github.com/aviferdman/Cloud-Computing.git
-              cd parking-lot-management/app
-              python3 parking_system.py &
+              yum install -y docker
+              service docker start
+              systemctl enable docker
+
+              # Configure and start the application
+              aws ecr get-login-password --region us-east-1 | docker login --username AWS --password-stdin ${aws_ecr_repository.parking_app.repository_url}
+              docker pull ${aws_ecr_repository.parking_app.repository_url}:latest
+              docker run -d -p 5000:5000 ${aws_ecr_repository.parking_app.repository_url}:latest
             EOF
 
   tags = {
