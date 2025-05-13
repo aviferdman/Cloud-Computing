@@ -29,6 +29,7 @@ A simple cloud-based API for tracking vehicle entry/exit and calculating parking
     ```
 
 ---
+## Linux 
 
 ## Zero-Touch Containerized Deployment
 
@@ -59,6 +60,38 @@ Deploy the application as a containerized service using AWS ECR and EC2 with min
     terraform apply
     ```
 
+## Windows 
+
+## Zero-Touch Containerized Deployment
+
+Deploy the application as a containerized service using AWS ECR and EC2 with minimal manual intervention:
+
+1. **Prerequisites**:
+   - Docker installed locally
+   - AWS CLI configured with appropriate permissions
+   - Terraform installed
+   - WSL installed
+
+2. **Create ECR Repository**:
+    ```bash
+    wsl 
+    cd terraform
+    terraform init
+    terraform apply -target=aws_ecr_repository.parking_app
+    ```
+   Note the ECR repository URL from the output.
+
+3. **Build and Push Docker Image**:
+    ```bash
+    cd ../deploy
+    sudo ./deploy.sh
+    ```
+
+4. **Deploy EC2 Instance**:
+    ```bash
+    cd ../terraform
+    terraform apply
+    ```
 Your containerized application will be running on the EC2 instance's public IP at port 5000.
 
 ---
@@ -78,3 +111,12 @@ terraform destroy
 - Never commit `terraform/parking-lot-key.pem` to GitHub.
 - AWS keys must be configured securely.
 - Keep your ECR repository credentials secure.
+
+---
+## Testing
+```bash
+    cd /app
+    pytest test_parking_system_integration.py
+    pytest test_parking_system_unit_tests.py
+```
+---

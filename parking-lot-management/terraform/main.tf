@@ -152,7 +152,8 @@ resource "aws_iam_role_policy" "dynamodb_access" {
         Action = [
           "dynamodb:PutItem",
           "dynamodb:GetItem",
-          "dynamodb:DeleteItem"
+          "dynamodb:DeleteItem",
+          "dynamodb:Scan"
         ]
         Resource = [aws_dynamodb_table.parking_entries.arn]
       }
