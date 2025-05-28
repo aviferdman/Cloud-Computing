@@ -15,7 +15,8 @@ def get_random_plate():
 
 
 def test_vehicle_entry_duplicate(client):
-    response = client.post('/entry', query_string={'plate': 'ABC123', 'parkingLot': 'parkingLot'})
+    response = client.post('/entry', query_string={'plate': 'check', 'parkingLot': 'parkingLot'})
+    response = client.post('/entry', query_string={'plate': 'check', 'parkingLot': 'parkingLot'})
     assert response.status_code == 400
     assert response.get_json()['error'] == 'Plate already exists'
 
