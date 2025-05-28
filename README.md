@@ -14,6 +14,24 @@ A simple cloud-based API for tracking vehicle entry/exit and calculating parking
 - **POST /exit?ticketId={ticketId}**  
   Returns the plate, parked time in minutes, parking lot ID, and fee.
 
+# Usage with Deployed Instance
+
+After deploying the EC2 instance with Terraform, you can use the instance_public_ip output to interact with the API:
+
+1. Wait 3-5 minutes after terraform deployment completes for the instance to fully initialize.
+2. Use the instance_public_ip from terraform output in your requests:
+
+Example API calls (replace {IP} with your instance_public_ip):
+```bash
+# Vehicle Entry
+http://{IP}:5000/entry?plate=12345&parkingLot=12345
+
+# Vehicle Exit
+http://{IP}:5000/exit?ticketId=6fc28b9d-bc89-44e6-9460-ddfa89ede016
+```
+
+Note: If you receive connection errors, wait a few more minutes as the instance might still be initializing.
+
 ---
 
 ## Local Deployment:
@@ -119,4 +137,72 @@ terraform destroy
     pytest test_parking_system_integration.py
     pytest test_parking_system_unit_tests.py
 ```
+
 ---
+
+# Common Issues and Solutions
+
+## 1. Docker Build Error in WSL
+
+If you encounter this error when running `sudo ./deploy.sh`:
+```bash
+ERROR [internal] load metadata for docker.io/library/python:3.9-slim
+```
+
+### Solution:
+
+1. **Fix Docker Credentials**:
+   ```bash
+   # Open Docker config file
+   nano ~/.docker/config.json
+   ```
+
+   Remove any `credsStore` entry. The file should look like either:
+   ```json
+   {
+     "auths": {
+       "https://index.docker.io/v1/": {}
+     }
+   }
+   ```
+   Or:
+   ```json
+   {
+     "auths": {
+       "946122991383.dkr.ecr.us-east-1.amazonaws.com": {}
+     }
+   }
+   ```
+
+   To save in nano:
+   - Press `Ctrl + O` to write changes
+   - Press `Enter` to confirm
+   - Press `Ctrl + X` to exit
+
+2. **Retry Deployment**:
+   ```bash
+   sudo ./deploy.sh
+   ```
+
+## 2. Docker Command Not Found
+
+If you encounter this error when running `./deploy.sh`:
+```bash
+./deploy.sh: line 13: docker: command not found
+```
+
+### Solution:
+
+1. **Enable WSL Integration in Docker Desktop**:
+   - Open Docker Desktop
+   - Go to Settings
+   - Navigate to Resources → WSL Integration
+   - Check "Enable integration with my default WSL distro"
+   - Under "Enable integration with additional distros", ensure "Ubuntu-18.04" is checked
+   - Click Apply & Restart
+   - Wait for Docker Desktop to restart completely
+
+2. **Retry Deployment**:
+   ```bash
+   sudo ./deploy.sh
+   ```
